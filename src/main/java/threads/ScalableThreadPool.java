@@ -11,7 +11,6 @@ public class ScalableThreadPool implements ThreadPool {
     private final Queue<Runnable> tasks = new ArrayDeque<>();
     private final Object lock = new Object();
     private final List<Thread> workers;
-    private volatile boolean stopped;
     private final Logger logger = Logger.getGlobal();
     private final int min;
     private final int max;
@@ -34,13 +33,13 @@ public class ScalableThreadPool implements ThreadPool {
 
         @Override
         public void run() {
-            while (!stopped) {
+            while (true) {
                 Runnable task;
                 synchronized (lock) {
                     while (tasks.isEmpty()) {
-                        if (stopped || busyThreadsCount > min) {
+                        if (workers.size() > min) {
                             workers.remove(ScalableThread.this);
-                            System.err.println("removing "+busyThreadsCount);
+                            System.err.println("removing " + busyThreadsCount + " current size " + workers.size());
                             return;
                         }
                         try {
@@ -65,18 +64,17 @@ public class ScalableThreadPool implements ThreadPool {
         private void decrementBusyThreads() {
             synchronized (lock) {
                 busyThreadsCount--;
-                System.err.println("dec " + busyThreadsCount);
+                System.err.println("dec busy " + busyThreadsCount + " task size " + tasks.size());
             }
         }
 
         private void incrementBusyThreads() {
             synchronized (lock) {
                 busyThreadsCount++;
-                System.err.println("inc " + busyThreadsCount);
+                System.err.println("inc busy " + busyThreadsCount + " task size " + tasks.size());
             }
         }
     }
-
 
 
     @Override
@@ -89,14 +87,15 @@ public class ScalableThreadPool implements ThreadPool {
     }
 
     private void scalePool() {
-        if (workers.size() < max && !workers.isEmpty() && busyThreadsCount == workers.size()) {
+        if (!started && workers.size() < max) {
             ScalableThread scalableThread = new ScalableThread("Sad thread, must work harder");
             workers.add(scalableThread);
-            System.err.println("add" + busyThreadsCount);
+            System.err.println("add before start " + busyThreadsCount);
+        } else if (busyThreadsCount == min) {
+            ScalableThread scalableThread = new ScalableThread("Sad thread, must work harder");
+            workers.add(scalableThread);
+            System.err.println("add after start" + busyThreadsCount);
             scalableThread.start();
-        }else if (workers.size() < max && !started) {
-            ScalableThread scalableThread = new ScalableThread("Sad thread, must work harder");
-            workers.add(scalableThread);
         }
     }
 
@@ -104,9 +103,5 @@ public class ScalableThreadPool implements ThreadPool {
     public void start() {
         started = true;
         workers.forEach(Thread::start);
-    }
-
-    public void stop() {
-        stopped = true;
     }
 }
