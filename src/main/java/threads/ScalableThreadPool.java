@@ -14,7 +14,7 @@ public class ScalableThreadPool implements ThreadPool {
     private final Logger logger = Logger.getGlobal();
     private final int min;
     private final int max;
-    private volatile int busyThreadsCount;
+    private int busyThreadsCount;
     private volatile boolean started;
 
     public ScalableThreadPool(int min, int max) {
@@ -38,8 +38,8 @@ public class ScalableThreadPool implements ThreadPool {
                 synchronized (lock) {
                     while (tasks.isEmpty()) {
                         if (workers.size() > min) {
-                            workers.remove(ScalableThread.this);
                             System.err.println("removing " + busyThreadsCount + " current size " + workers.size());
+                            workers.remove(ScalableThread.this);
                             return;
                         }
                         try {
@@ -87,11 +87,12 @@ public class ScalableThreadPool implements ThreadPool {
     }
 
     private void scalePool() {
-        if (!started && workers.size() < max) {
+        if (workers.size() == max) return;
+        if (!started) {
             ScalableThread scalableThread = new ScalableThread("Sad thread, must work harder");
             workers.add(scalableThread);
             System.err.println("add before start " + busyThreadsCount);
-        } else if (busyThreadsCount == min) {
+        } else if (tasks.size() >= workers.size()) {
             ScalableThread scalableThread = new ScalableThread("Sad thread, must work harder");
             workers.add(scalableThread);
             System.err.println("add after start" + busyThreadsCount);

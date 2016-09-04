@@ -2,7 +2,7 @@ package threads;
 
 public class Main {
     public static void main(String[] args) throws InterruptedException {
-        ScalableThreadPool threadPool = new ScalableThreadPool(2, 5);
+        ScalableThreadPool threadPool = new ScalableThreadPool(1, 4);
         for (int i = 0; i < 10; i++) {
             final int ii = i;
             threadPool.execute(() -> {
@@ -16,8 +16,8 @@ public class Main {
         }
         threadPool.start();
         Thread.sleep(5000);
-        System.out.println();
-        System.out.println();
+        System.err.println();
+        System.err.println();
         for (int i = 20; i < 35; i++) {
             final int ii = i;
             threadPool.execute(() -> {
