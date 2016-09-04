@@ -11,7 +11,6 @@ public class FixedThreadPool implements ThreadPool {
     private final Queue<Runnable> tasks = new ArrayDeque<>();
     private final Object lock = new Object();
     private final List<Thread> workers;
-    private volatile boolean stopped;
     private final Logger logger = Logger.getGlobal();
 
     public FixedThreadPool(int threadCount) {
@@ -28,11 +27,10 @@ public class FixedThreadPool implements ThreadPool {
 
         @Override
         public void run() {
-            while (!stopped) {
+            while (true) {
                 Runnable task;
                 synchronized (lock) {
                     while (tasks.isEmpty()) {
-                        if (stopped) return;
                         try {
                             lock.wait();
                         } catch (InterruptedException e) {
@@ -61,9 +59,5 @@ public class FixedThreadPool implements ThreadPool {
             tasks.add(runnable);
             lock.notify();
         }
-    }
-
-    public void stop() {
-        stopped = true;
     }
 }
